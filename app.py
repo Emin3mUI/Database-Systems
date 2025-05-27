@@ -3,6 +3,7 @@ from flask_cors import CORS
 import psycopg2
 import logging
 from flask import render_template  
+from neo4j import GraphDatabase
 
 # Connect to PostgreSQL
 conn = psycopg2.connect(
@@ -120,6 +121,56 @@ def add_borrower():
     """, (data['email'], data['password']))
     conn.commit()
     return jsonify({'message': 'Borrower registered successfully'})
+
+
+
+# Neo4j connection setup
+neo4j_driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "12345678"))
+
+# -------------------- NEO4J ROUTES -------------------- #
+
+@app.route('/graph/books', methods=['GET'])
+def graph_books():
+    with neo4j_driver.session() as session:
+        result = session.run("MATCH (b:Book) RETURN b")
+        books = [dict(record["b"].items()) for record in result]
+        return jsonify(books)
+
+@app.route('/graph/borrowed/<email>', methods=['GET'])
+def graph_borrowed(email):
+    with neo4j_driver.session() as session:
+        result = session.run("""
+            MATCH (p:Borrower {email: $email})-[:BORROWED]->(b:Book)
+            RETURN b
+        """, email=email)
+        books = [dict(record["b"].items()) for record in result]
+        return jsonify(books)
+
+@app.route('/graph/borrow', methods=['POST'])
+def graph_borrow_book():
+    data = request.json
+    with neo4j_driver.session() as session:
+        session.run("""
+            MATCH (p:Borrower {email: $email}), (b:Book {book_id: $book_id})
+            CREATE (p)-[:BORROWED {
+                start_date: date($start_date),
+                return_date: date($return_date),
+                is_it_returned: false
+            }]->(b)
+        """, email=data["borrower_email"], book_id=data["book_id"],
+             start_date=data["start_date"], return_date=data["return_date"])
+    return jsonify({'message': 'Borrowed relationship created in graph'})
+
+@app.route('/graph/return', methods=['POST'])
+def graph_return_book():
+    data = request.json
+    with neo4j_driver.session() as session:
+        session.run("""
+            MATCH (p:Borrower {email: $email})-[r:BORROWED]->(b:Book {book_id: $book_id})
+            SET r.is_it_returned = true
+        """, email=data["borrower_email"], book_id=data["book_id"])
+    return jsonify({'message': 'Book return updated in graph'})
+
 
 # -------------------- RUN APP -------------------- #
 
