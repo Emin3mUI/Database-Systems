@@ -1,4 +1,4 @@
-// Clear all existing data (optional but recommended for clean testing)
+// Clear all existing data
 MATCH (n) DETACH DELETE n;
 
 // Create Book nodes
@@ -21,3 +21,4 @@ CREATE (b2)-[:BORROWED {start_date: date("2023-08-10"), return_date: date("2023-
 // Create the graphs
 MATCH (n) RETURN n;
 MATCH (b:Borrower)-[r:BORROWED]->(bk:Book) RETURN b, r, bk;
+

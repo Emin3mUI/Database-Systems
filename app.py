@@ -9,7 +9,7 @@ from neo4j import GraphDatabase
 conn = psycopg2.connect(
     dbname="Library_Management",
     user="postgres",
-    password="",  # Add your password here
+    password="",  
     host="localhost",
     port="5432"
 )
