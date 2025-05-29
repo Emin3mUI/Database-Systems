@@ -22,3 +22,5 @@ CREATE (b2)-[:BORROWED {start_date: date("2023-08-10"), return_date: date("2023-
 MATCH (n) RETURN n;
 MATCH (b:Borrower)-[r:BORROWED]->(bk:Book) RETURN b, r, bk;
 
+// Show graph with relationships
+MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 100
